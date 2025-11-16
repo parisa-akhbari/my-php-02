@@ -44,6 +44,9 @@
                 return false;
             }
         }
+        public function escape($str) {
+            return $this->connect->real_escape_string($str);
+    }
     }
 
 ?>

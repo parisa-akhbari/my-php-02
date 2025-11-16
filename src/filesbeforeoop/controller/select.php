@@ -11,11 +11,11 @@
                 <table class='table table-bordered'>";
     while ($row = $result->fetch_array()) {
         $out.="<tr>
-                    <td width='30%'><label>Title</label></td>
+                    <td width='30%'><label>عنوان</label></td>
                     <td width='70%'>".$row["title"]."</td>
                </tr>";
         $out.="<tr>
-                    <td width='30%'><label>Description</label></td>
+                    <td width='30%'><label>توضیحات</label></td>
                     <td width='70%'>".$row["description"]."</td>
                </tr>";
                
