@@ -36,6 +36,17 @@
             }
         }
 
+       // داخل DB
+        public function getone($query){
+            $result = $this->connect->query($query) or die($this->connect->error . __LINE__);
+            if ($result && $result->num_rows > 0) {
+                return $result->fetch_assoc(); // فقط یک رکورد
+            } else {
+                return false;
+        }
+}
+
+
         public function insert($query){
             $insert_row = $this->connect->query($query) or die($this->connect->error.__LINE__); 
             if ($insert_row) {
@@ -44,8 +55,32 @@
                 return false;
             }
         }
+        public function update($query){
+            $update_row = $this->connect->query($query) or die($this->connect->error . __LINE__);
+
+            if ($update_row) {
+                return $update_row;
+            } else {
+                return false;
+        }
+}
+
+        public function delete($query){
+            $result = $this->connect->query($query);
+
+            if($result){
+                return true;
+            } else {
+                 return false;
+        }
+}
+
         public function escape($str) {
             return $this->connect->real_escape_string($str);
+    }
+
+      public function getConnection() {
+        return $this->connect;
     }
     }
 

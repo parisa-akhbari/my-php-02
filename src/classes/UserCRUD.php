@@ -1,128 +1,123 @@
 <?php
 require_once "database/database.php";
-require_once 'jdf.php'; 
 
 class UserCRUD {
-    private $conn;
+
+    private $db;
     private $table = "tb_user";
-    private $iran_offset = 12600; 
 
     public function __construct() {
-        $this->conn = new DB(); // یکبار اتصال به دیتابیس
+        $this->db = new DB();
     }
 
-    // افزودن کاربر
-    public function create($data) {
-        $title = $this->conn->escape($data['title']);
-        $description = $this->conn->escape($data['description']);
-        $query = "INSERT INTO {$this->table} (title, description) VALUES ('$title', '$description')";
-        return $this->conn->insert($query);
+    // شمارش رکوردهای یک کاربر
+    public function countAll($user_id) {
+        $sql = "SELECT COUNT(*) AS total FROM {$this->table} WHERE user_id = $user_id";
+        $res = $this->db->select($sql);
+
+        if ($res && $row = $res->fetch_assoc()) {
+            return $row['total'];
+        }
+        return 0;
     }
 
-    // بروزرسانی کاربر
-    public function update($id, $data) {
-        $title = $this->conn->escape($data['title']);
-        $description = $this->conn->escape($data['description']);
-        $query = "UPDATE {$this->table} SET title='$title', description='$description' WHERE id=$id";
-        return $this->conn->insert($query);
-    }
+    // گرفتن لیست رکوردهای کاربر
+    public function getAll($limit, $offset, $user_id) {
+        $sql = "SELECT * FROM {$this->table}
+                WHERE user_id = $user_id
+                ORDER BY id DESC
+                LIMIT $limit OFFSET $offset";
 
-    // حذف کاربر
-    public function delete($id) {
-        $query = "DELETE FROM {$this->table} WHERE id=$id";
-        
-        return $this->conn->insert($query);
+        $res = $this->db->select($sql);
+        $data = [];
 
-    }
-
-    // گرفتن یک کاربر
-    public function get($id) {
-        $query = "SELECT * FROM {$this->table} WHERE id=$id";
-        $result = $this->conn->select($query);
-        return $result ? $result->fetch_assoc() : null;
-    }
-
-    // گرفتن همه کاربران
-    public function getAll() {
-        $query = "SELECT * FROM {$this->table}";
-        $result = $this->conn->select($query);
-        $rows = [];
-        if ($result && $result->num_rows > 0) {
-            while ($row = $result->fetch_assoc()) {
-                $rows[] = $row;
+        if ($res) {
+            while ($row = $res->fetch_assoc()) {
+                $data[] = $row;
             }
         }
-        return $rows;
+        return $data;
     }
 
+    // گرفتن یک رکورد
+    public function get($id, $user_id) {
+        $id = (int)$id;
+        $user_id = (int)$user_id;
 
-    public function getPaginated($limit, $offset) {
-    $query = "SELECT * FROM {$this->table} ORDER BY id DESC LIMIT $limit OFFSET $offset";
-    $result = $this->conn->select($query);
+        $sql = "SELECT * FROM {$this->table} WHERE id = $id AND user_id = $user_id LIMIT 1";
+        return $this->db->getone($sql); // فقط یک رکورد یا false
+}
 
-    $rows = [];
-    if ($result) {
-        while ($row = $result->fetch_assoc()) {
-            $rows[] = $row;
+    // ایجاد رکورد جدید
+    public function create($data, $user_id) {
+        $title = $this->db->escape($data['title']);
+        $description = $this->db->escape($data['description']);
+
+        $sql = "INSERT INTO {$this->table} (title, description, user_id)
+                VALUES ('$title', '$description', $user_id)";
+
+        return $this->db->insert($sql);
+    }
+
+    // ویرایش رکورد
+    public function update($data, $id, $user_id) {
+        $title = $this->db->escape($data['title']);
+        $description = $this->db->escape($data['description']);
+
+        $sql = "UPDATE {$this->table}
+                SET title='$title', description='$description'
+                WHERE id=$id AND user_id=$user_id";
+
+        return $this->db->update($sql);
+    }
+
+    // حذف رکورد
+    public function delete($id, $user_id) {
+        $sql = "DELETE FROM {$this->table}
+                WHERE id=$id AND user_id=$user_id";
+
+        return $this->db->delete($sql);
+    }
+
+    // جدول HTML
+    public function renderTable($limit, $offset, $user_id) {
+        $records = $this->getAll($limit, $offset, $user_id);
+
+        $out = '<div class="table-responsive">
+                <table class="table table-bordered table-striped">
+                <thead>
+                    <tr>
+                        <th>عنوان</th>
+                        <th>توضیحات</th>
+                        <th>تاریخ</th>
+                        <th>نمایش</th>
+                        <th>ویرایش</th>
+                        <th>حذف</th>
+                    </tr>
+                </thead><tbody>';
+
+        if (!empty($records)) {
+            foreach ($records as $row) {
+                $id = $row['id'];
+                $title = htmlspecialchars($row['title']);
+                $description = htmlspecialchars($row['description']);
+                $created_at = htmlspecialchars($row['created_at']);
+
+                $out .= "<tr>
+                            <td>{$title}</td>
+                            <td>{$description}</td>
+                            <td>{$created_at}</td>
+                            <td><button class='btn btn-primary view_data' id='{$id}'>نمایش</button></td>
+                            <td><button class='btn btn-success edit_data' id='{$id}'>ویرایش</button></td>
+                            <td><button class='btn btn-danger delete_data' id='{$id}'>حذف</button></td>
+                         </tr>";
+            }
+        } else {
+            $out .= "<tr><td colspan='6' class='text-center'>هیچ داده‌ای پیدا نشد</td></tr>";
         }
+
+        $out .= "</tbody></table></div>";
+
+        return $out;
     }
-    return $rows;
 }
-
-public function countAll() {
-    $query = "SELECT COUNT(*) AS total FROM {$this->table}";
-    $result = $this->conn->select($query);
-    $row = $result->fetch_assoc();
-    return $row['total'];
-}
-
-
-    // ساخت جدول HTML برای نمایش کاربران
-   public function renderTable($limit, $offset) {
-
-    $users = $this->getPaginated($limit, $offset);
-
-    $out = "<div class='table table-responsive'>
-                <table class='table table-bordered table-striped table-light'>
-                    <thead>
-                        <tr>
-                            <th>عنوان</th>
-                            <th>توضیحات</th>
-                            <th>تاریخ ایجاد</th>
-                            <th>نمایش</th>
-                            <th>ویرایش</th>
-                            <th>حذف</th>
-                        </tr>
-                    </thead>
-                    <tbody>";
-
-    if (!empty($users)) {
-        foreach ($users as $row) {
-
-            $id = $row['id'];
-            $title = htmlspecialchars($row['title']);
-            $description = htmlspecialchars($row['description']);
-            $created_at = jdate("Y/m/d H:i:s", strtotime($row['created_at']) + $this->iran_offset);
-
-            $out .= "<tr>
-                        <td>{$title}</td>
-                        <td>{$description}</td>
-                        <td>{$created_at}</td>
-                        <td><button class='btn btn-primary view_data' id='{$id}'>نمایش</button></td>
-                        <td><button class='btn btn-success edit_data' id='{$id}'>ویرایش</button></td>
-                        <td><button class='btn btn-danger delete_data' id='{$id}'>حذف</button></td>
-                     </tr>";
-        }
-    } else {
-        $out .= "<tr><td colspan='6' class='text-center'>داده‌ای یافت نشد!</td></tr>";
-    }
-
-    $out .= "</tbody></table></div>";
-
-    return $out;
-}
-
-
-    
-}
-?>
